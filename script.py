@@ -245,10 +245,29 @@ def upload_to_youtube(video_file, data):
     if not youtube:
         return
 
-    date_str = data["puzzle"].get("date", datetime.date.today().strftime("%B %d, %Y"))
-    title = f"NYT Spelling Bee {date_str} Answer | Today's Solution"
-    description = f"Here are the answers for the NYT Spelling Bee on {date_str}.\n\nPlay the game: {GAME_URL}"
-    tags = ["NYT Spelling Bee", "Spelling Bee Answers", "Spelling Bee Solver", "NYT Games"]
+    display_date = data["puzzle"]["date"] # e.g., "January 12, 2026"
+    try:
+        # Parse date to build URL: January 12, 2026 -> january-12-2026
+        dt = datetime.datetime.strptime(display_date, "%B %d, %Y")
+        url_date = dt.strftime("%B-%d-%Y").lower()
+    except:
+        url_date = datetime.date.today().strftime("%B-%d-%Y").lower()
+
+    title = f"NYT Spelling Bee Answer Today ({display_date}) - Hints & Solution"
+    
+    description = (
+        f"Stuck on today's NYT Spelling Bee? Here is the full solution and answers for {display_date}.\n\n"
+        f"🐝 **Today's Answer:** https://sbsolver.online/answer-for-{url_date}\n\n"
+        f"⚡ **Fastest Spelling Bee Solver:** https://sbsolver.online/solver\n\n"
+        f"In this video, we reveal all the hidden words, including the Pangram, for the New York Times Spelling Bee puzzle.\n\n"
+        f"#SpellingBee #NYTGames #WordPuzzle #SpellingBeeAnswers #Today"
+    )
+
+    tags = [
+        "NYT Spelling Bee", "Spelling Bee Answers", "Spelling Bee Solver", "NYT Games",
+        "Spelling Bee Today", "Spelling Bee Solution", "Word Game Hints", "Daily Puzzle",
+        "Spelling Bee Hints", f"Spelling Bee {display_date}", "New York Times Games"
+    ]
 
     body = {
         "snippet": {
@@ -258,7 +277,7 @@ def upload_to_youtube(video_file, data):
             "categoryId": "20", # Gaming
         },
         "status": {
-            "privacyStatus": "private", # Default to private for safety
+            "privacyStatus": "public", # Now PUBLIC
             "selfDeclaredMadeForKids": False,
         }
     }
