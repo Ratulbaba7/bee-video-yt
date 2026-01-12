@@ -1,0 +1,5 @@
+/recordings/
+/.venv/
+token.json
+client_secret.json
+prompt.txt

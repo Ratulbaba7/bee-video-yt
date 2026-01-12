@@ -1,0 +1,40 @@
+name: Daily Spelling Bee Video
+
+on:
+  schedule:
+    - cron: '30 19 * * *' # 7:30 PM UTC / 1:00 AM IST
+  workflow_dispatch:
+
+jobs:
+  generate-video:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Run automation script
+        env:
+          YOUTUBE_TOKEN: ${{ secrets.YOUTUBE_TOKEN }}
+        run: python script.py
+
+      - name: Upload video as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spelling-bee-video
+          path: spelling_bee_daily.mp4

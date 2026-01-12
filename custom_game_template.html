@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Bee — The New York Times</title>
+    <link rel="shortcut icon" href="https://www.nytimes.com/games-assets/v2/metadata/sb-favicon.ico" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Libre Franklin', sans-serif;
+            background: #fff;
+            color: #333;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e6e6e6;
+            height: 52px;
+        }
+
+        .header-bg {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-text {
+            font-family: Georgia, serif;
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            color: #000;
+        }
+
+        .btn-subscribe {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-outline {
+            background: #fff;
+            color: #333;
+            border: 1px solid #333;
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-left: 10px;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 20px;
+            padding: 12px 40px;
+            border-bottom: 1px solid #e6e6e6;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .toolbar a {
+            color: inherit;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+        }
+
+        .toolbar a:hover {
+            border-bottom: 1px solid #333;
+        }
+
+        .more-dropdown {
+            border: 1px solid #000;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Main Game Layout */
+        .main-container {
+            max-width: 1150px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: flex;
+            gap: 60px;
+            align-items: flex-start;
+        }
+
+        /* Left Column: Hive */
+        .left-column {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .type-click-box {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 32px;
+            color: #333;
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+
+        .cursor-bar {
+            width: 4px;
+            height: 38px;
+            background-color: #f8cd05;
+            margin: 0 auto;
+            opacity: 0.8;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+
+            from,
+            to {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .input-container {
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .input-display {
+            font-size: 38px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+        }
+
+        .center-char {
+            color: #f8cd05;
+        }
+
+        /* HIVE Grid */
+        .hive-container {
+            position: relative;
+            width: 290px;
+            height: 290px;
+            margin-bottom: 40px;
+        }
+
+        .hex {
+            position: absolute;
+            width: 96px;
+            height: 96px;
+            cursor: pointer;
+            transition: transform 0.05s;
+        }
+
+        .hex:active {
+            transform: scale(0.92);
+        }
+
+        .hex svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .hex polygon {
+            fill: #e6e6e6;
+            transition: fill 0.1s;
+        }
+
+        .hex:hover polygon {
+            fill: #d8d8d8;
+        }
+
+        .hex.center polygon {
+            fill: #f8cd05;
+        }
+
+        .hex.center:hover polygon {
+            fill: #e6be00;
+        }
+
+        .hex text {
+            dominant-baseline: central;
+            text-anchor: middle;
+            font-weight: 700;
+            font-size: 32px;
+            fill: #000;
+            pointer-events: none;
+        }
+
+        /* Hex Layout */
+        .h-0 {
+            top: 0px;
+            left: 97px;
+        }
+
+        /* Top */
+        .h-1 {
+            top: 48px;
+            left: 14px;
+        }
+
+        /* Top Left */
+        .h-2 {
+            top: 48px;
+            left: 180px;
+        }
+
+        /* Top Right */
+        .h-c {
+            top: 97px;
+            left: 97px;
+        }
+
+        /* Center */
+        .h-3 {
+            top: 146px;
+            left: 14px;
+        }
+
+        /* Bottom Left */
+        .h-4 {
+            top: 146px;
+            left: 180px;
+        }
+
+        /* Bottom Right */
+        .h-5 {
+            top: 194px;
+            left: 97px;
+        }
+
+        /* Bottom */
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .pill-btn {
+            border: 1px solid #e6e6e6;
+            background: #fff;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        .pill-btn:hover {
+            border-color: #333;
+        }
+
+        .shuffle-btn {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Right Column: Progress + Word List */
+        .right-column {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Progress Bar - Marker is the current score */
+        .progress-box {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .rank-label {
+            font-weight: 700;
+            font-size: 16px;
+            margin-right: 15px;
+        }
+
+        .progress-track {
+            position: relative;
+            flex: 1;
+            height: 1px;
+            background: #dcdcdc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .bg-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e6e6e6;
+            position: relative;
+            z-index: 1;
+        }
+
+        .bg-dot.active {
+            background: #f8cd05;
+        }
+
+        .score-circle {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #f8cd05;
+            top: -14px;
+            left: 0%;
+            /* Dynamic */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 2;
+            transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .rank-hint {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 25px;
+            padding-left: 2px;
+        }
+
+        .word-list-card {
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            height: 500px;
+            /* Overall height of the card */
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .word-list-header {
+            padding: 15px 20px;
+            font-size: 14px;
+            color: #333;
+            border-bottom: 1px solid #e6e6e6;
+            margin-top: 10px;
+        }
+
+        .word-scroll {
+            flex: 1;
+            padding: 20px;
+            overflow-x: auto;
+            /* Horizontal scroll if many columns */
+            overflow-y: hidden;
+            column-fill: auto;
+            column-width: 150px;
+            column-gap: 40px;
+            height: 445px;
+            /* Fixed height to force ~12 words per column */
+        }
+
+        .word-item {
+            font-size: 16px;
+            padding: 8px 0 4px 0;
+            border-bottom: 1px solid #dcdcdc;
+            text-transform: capitalize;
+            color: #333;
+            margin-bottom: 8px;
+            width: 95%;
+            break-inside: avoid;
+        }
+
+        .word-item.pangram {
+            font-weight: 700;
+            color: #f8cd05;
+        }
+
+        #toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 9999;
+            display: none;
+        }
+
+        /* Genius Modal */
+        #genius-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            text-align: center;
+            font-family: 'Libre Franklin', sans-serif;
+        }
+
+        .genius-content {
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .bee-box {
+            font-size: 80px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .mortarboard {
+            position: absolute;
+            top: -10px;
+            left: 55%;
+            font-size: 40px;
+        }
+
+        .genius-title {
+            font-family: Georgia, serif;
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            color: #000;
+        }
+
+        .genius-msg {
+            font-family: Georgia, serif;
+            font-size: 24px;
+            line-height: 1.4;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .genius-msg b {
+            font-weight: 900;
+        }
+
+        .status-bar {
+            border-top: 1px solid #e6e6e6;
+            border-bottom: 1px solid #e6e6e6;
+            padding: 15px 0;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-outline-modal {
+            background: #fff;
+            border: 1px solid #000;
+            color: #000;
+        }
+
+        .btn-solid-modal {
+            background: #000;
+            border: 1px solid #000;
+            color: #fff;
+        }
+
+        .modal-btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="header-bg">
+            <div style="font-size: 24px; cursor:pointer; color:#333;">☰</div>
+            <div class="logo-text">𝕿 Games</div>
+        </div>
+        <div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <a href="#">Stats</a>
+        <a href="#">Play Yesterday's Puzzle ↗</a>
+        <a href="#">Hints ↗</a>
+        <div class="more-dropdown">More ▾</div>
+    </div>
+
+    <div id="toast"></div>
+
+    <div class="main-container">
+        <!-- Left Side: Hive UI -->
+        <div class="left-column">
+            <div class="input-container">
+                <div class="type-click-box" id="type-click-box" style="justify-content: center; position: absolute;">
+                    <div class="cursor-bar"></div>
+                    <span id="type-click-text">Type or click</span>
+                </div>
+                <div class="input-display" id="input-area"></div>
+            </div>
+
+            <div class="hive-container" id="hive">
+                <!-- Hive SVGs -->
+            </div>
+
+            <div class="btn-row">
+                <button class="pill-btn" onclick="del()">Delete</button>
+                <button class="pill-btn shuffle-btn" onclick="shuf()">
+                    <svg viewBox="0 0 24 24" width="24">
+                        <path
+                            d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+                </button>
+                <button class="pill-btn" onclick="ent()">Enter</button>
+            </div>
+        </div>
+
+        <!-- Right Column: Rank + Word List -->
+        <div class="right-column">
+            <div class="progress-box">
+                <span class="rank-label" id="rank-name">Beginner</span>
+                <div class="progress-track" id="track">
+                    <div class="score-circle" id="marker">0</div>
+                    <div class="bg-dot active" id="dot-0"></div>
+                    <div class="bg-dot" id="dot-1"></div>
+                    <div class="bg-dot" id="dot-2"></div>
+                    <div class="bg-dot" id="dot-3"></div>
+                    <div class="bg-dot" id="dot-4"></div>
+                    <div class="bg-dot" id="dot-5"></div>
+                    <div class="bg-dot" id="dot-6"></div>
+                    <div class="bg-dot" id="dot-7"></div>
+                    <div class="bg-dot" id="dot-8"></div>
+                </div>
+            </div>
+
+            <div class="word-list-card">
+                <div class="word-list-header" id="word-header">You have found 0 words</div>
+                <div class="word-scroll" id="word-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Genius Modal -->
+    <div id="genius-modal">
+        <div class="genius-content">
+            <div class="bee-box">
+                🐝<span class="mortarboard">🎓</span>
+            </div>
+            <div class="genius-title">Genius</div>
+            <div class="genius-msg" id="genius-msg">
+                You reached the highest rank, with<br>
+                <b id="genius-words">0 words</b> and <b id="genius-points">0 points</b>.
+            </div>
+            <div class="status-bar">
+                <span>🎓</span> Still a Genius! Excellent work.
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn btn-outline-modal">View all games</button>
+                <button class="modal-btn btn-solid-modal" onclick="closeModal()">Keep playing</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameData = {};
+        let currentInput = "";
+        let foundWords = [];
+        let score = 0;
+        let thresholds = [];
+        let hasShownGenius = false;
+
+        // NYT Official Ranks
+        const rankNames = ["Beginner", "Good Start", "Moving Up", "Good", "Solid", "Nice", "Great", "Amazing", "Genius"];
+        const rankPcts = [0, 0.02, 0.05, 0.08, 0.15, 0.25, 0.40, 0.50, 0.70];
+
+        function init(data) {
+            gameData = data;
+
+            // Calculate total possible score
+            let maxScore = 0;
+            data.answers.forEach(w => {
+                maxScore += (w.length === 4 ? 1 : w.length);
+                if (new Set(w).size === 7) maxScore += 7; // Pangram bonus
+            });
+
+            // Calculate rank thresholds
+            thresholds = rankPcts.map(p => Math.floor(maxScore * p));
+
+            drawHive();
+            updateUI();
+
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Enter') ent();
+                else if (e.key === 'Backspace') del();
+                else if (/^[a-zA-Z]$/.test(e.key)) add(e.key.toLowerCase());
+            });
+        }
+
+        function drawHive() {
+            const container = document.getElementById('hive');
+            container.innerHTML = '';
+
+            const letters = [
+                gameData.outerLetters[0], gameData.outerLetters[1], gameData.outerLetters[2],
+                gameData.centerLetter,
+                gameData.outerLetters[3], gameData.outerLetters[4], gameData.outerLetters[5]
+            ];
+            const hexIds = ['0', '1', '2', 'c', '3', '4', '5'];
+
+            hexIds.forEach((id, i) => {
+                const letter = letters[i];
+                const div = document.createElement('div');
+                div.className = `hex h-${id}` + (id === 'c' ? ' center' : '');
+                div.innerHTML = `
+                    <svg viewBox="0 0 100 100">
+                        <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" />
+                        <text x="50" y="52">${letter.toUpperCase()}</text>
+                    </svg>
+                `;
+                div.onclick = () => add(letter);
+                container.appendChild(div);
+            });
+        }
+
+        function add(char) {
+            if (currentInput.length < 20) {
+                currentInput += char;
+                updateUI();
+            }
+        }
+        function del() {
+            currentInput = currentInput.slice(0, -1);
+            updateUI();
+        }
+        function shuf() {
+            gameData.outerLetters.sort(() => Math.random() - 0.5);
+            drawHive();
+        }
+
+        function updateUI() {
+            const area = document.getElementById('input-area');
+            const typeBox = document.getElementById('type-click-box');
+
+            const textElem = document.getElementById('type-click-text');
+            const cursor = document.querySelector('.cursor-bar');
+
+            if (currentInput) {
+                typeBox.style.visibility = 'hidden';
+                area.innerHTML = currentInput.split('').map(c =>
+                    `<span class="${c === gameData.centerLetter ? 'center-char' : ''}">${c.toUpperCase()}</span>`
+                ).join('');
+            } else {
+                typeBox.style.visibility = 'visible';
+                area.innerHTML = '';
+
+                if (foundWords.length > 0) {
+                    textElem.style.display = 'none';
+                    cursor.style.margin = '0'; // Center alone
+                } else {
+                    textElem.style.display = 'inline';
+                    cursor.style.margin = '0 6px'; // Space from text
+                }
+            }
+
+            // Rank logic
+            let rankIdx = 0;
+            thresholds.forEach((t, i) => { if (score >= t) rankIdx = i; });
+            const currentRank = rankNames[rankIdx];
+            document.getElementById('rank-name').innerText = currentRank;
+
+            // Marker Position
+            const marker = document.getElementById('marker');
+            marker.innerText = score;
+
+            // Percentage of progress through thresholds for marker position
+            const totalWidth = 100;
+            let pct = 0;
+            if (rankIdx < 8) {
+                const currentMin = thresholds[rankIdx];
+                const nextMin = thresholds[rankIdx + 1];
+                const progressInRank = (score - currentMin) / (nextMin - currentMin);
+                pct = (rankIdx + progressInRank) / 8 * 100;
+            } else {
+                pct = 100;
+            }
+            marker.style.left = `calc(${Math.min(pct, 100)}% - 14px)`;
+
+            // Dots
+            for (let i = 0; i < 9; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (dot) dot.classList.toggle('active', i <= rankIdx);
+            }
+
+
+            // Word List
+            const count = foundWords.length;
+            document.getElementById('word-header').innerText = `You have found ${count} word${count === 1 ? '' : 's'}`;
+
+            const list = document.getElementById('word-list');
+            list.innerHTML = '';
+
+            // NYT sorts found words alphabetically
+            const sorted = [...foundWords].sort();
+            sorted.forEach(w => {
+                const isPangram = new Set(w).size === 7;
+                const item = document.createElement('div');
+                item.className = 'word-item' + (isPangram ? ' pangram' : '');
+                item.innerText = w;
+                list.appendChild(item);
+            });
+
+            // Check for Genius Modal
+            if (rankIdx === 8 && !hasShownGenius) {
+                showGeniusModal();
+                hasShownGenius = true;
+            }
+        }
+
+        function showGeniusModal() {
+            document.getElementById('genius-words').innerText = `${foundWords.length} words`;
+            document.getElementById('genius-points').innerText = `${score} points`;
+            document.getElementById('genius-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('genius-modal').style.display = 'none';
+        }
+
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 1500);
+        }
+
+        function ent() {
+            const w = currentInput.toLowerCase();
+            if (w.length < 4) { showToast("Too short"); currentInput = ""; updateUI(); return; }
+            if (!w.includes(gameData.centerLetter)) { showToast("Missing center letter"); currentInput = ""; updateUI(); return; }
+            if (foundWords.includes(w)) { showToast("Already found"); currentInput = ""; updateUI(); return; }
+
+            if (gameData.answers.includes(w)) {
+                foundWords.push(w);
+                let p = w.length === 4 ? 1 : w.length;
+                const isPangram = new Set(w).size === 7;
+                if (isPangram) p += 7;
+                score += p;
+
+                showToast(isPangram ? "Pangram!" : "Nice!");
+                currentInput = "";
+                updateUI();
+            } else {
+                showToast("Not in word list");
+                currentInput = "";
+                updateUI();
+            }
+        }
+
+        window.startLocalGame = init;
+    </script>
+</body>
+
+</html>
