@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spelling Bee — The New York Times</title>
+    <title>Spelling Bee - The New York Times</title>
     <link rel="shortcut icon" href="https://www.nytimes.com/games-assets/v2/metadata/sb-favicon.ico" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&display=swap');
@@ -83,14 +83,8 @@
             color: #333;
         }
 
-        .toolbar a {
+        .toolbar-item {
             color: inherit;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-        }
-
-        .toolbar a:hover {
-            border-bottom: 1px solid #333;
         }
 
         .more-dropdown {
@@ -534,18 +528,16 @@
 
     <div class="header">
         <div class="header-bg">
-            <div style="font-size: 24px; cursor:pointer; color:#333;">☰</div>
-            <div class="logo-text">𝕿 Games</div>
+            <div style="font-size: 20px; cursor:pointer; color:#333;">|||</div>
+            <div class="logo-text">NYT Games</div>
         </div>
         <div>
         </div>
     </div>
 
     <div class="toolbar">
-        <a href="#">Stats</a>
-        <a href="#">Play Yesterday's Puzzle ↗</a>
-        <a href="#">Hints ↗</a>
-        <div class="more-dropdown">More ▾</div>
+        <span class="toolbar-item">Stats</span>
+        <div class="more-dropdown">More</div>
     </div>
 
     <div id="toast"></div>
