@@ -15,7 +15,6 @@ from googleapiclient.http import MediaFileUpload
 from moviepy.audio.fx.all import audio_loop
 from moviepy.editor import AudioFileClip, VideoFileClip, concatenate_videoclips
 from playwright.sync_api import sync_playwright
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # Patch for Pillow 10+ where ANTIALIAS was removed
 import PIL.Image
@@ -29,8 +28,8 @@ API_URLS = [
     "https://sbsolver.online/today.json",
     "https://spelling-bee-api.sbsolver.workers.dev/today",
 ]
-NYT_GAME_URL = "https://www.nytimes.com/puzzles/spelling-bee"
-GAME_URL = NYT_GAME_URL
+OFFICIAL_GAME_URL = "https://www.nytimes.com/puzzles/spelling-bee"
+GAME_URL = OFFICIAL_GAME_URL
 INTRO_VIDEO = "intro.mp4"
 BACKGROUND_MUSIC = "song1.mp3"
 OUTPUT_VIDEO = "spelling_bee_daily.mp4"
@@ -40,127 +39,86 @@ TODAY_PAGE_URL = "https://spellingbeesolver.dev/today/"
 VIDEO_DIR = "recordings"
 FINAL_FPS = 30
 RANK_PCTS = [0, 0.02, 0.05, 0.08, 0.15, 0.25, 0.40, 0.50, 0.70]
-try:
-    NYT_TIMEZONE = ZoneInfo("America/New_York")
-except ZoneInfoNotFoundError:
-    NYT_TIMEZONE = None
 
 # YouTube API Scopes
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
-def normalize_nyt_puzzle(nyt_puzzle: Dict[str, Any]) -> Dict[str, Any]:
-    center_letter = str(nyt_puzzle["centerLetter"]).upper()
-    outer_letters = [str(letter).upper() for letter in nyt_puzzle.get("outerLetters", [])]
-
-    ordered_letters: List[str] = []
-    for letter in [center_letter, *nyt_puzzle.get("validLetters", []), *outer_letters]:
-        normalized_letter = str(letter).upper()
-        if normalized_letter and normalized_letter not in ordered_letters:
-            ordered_letters.append(normalized_letter)
-
-    pangram_words = {
-        str(word).strip().lower()
-        for word in nyt_puzzle.get("pangrams", [])
-        if str(word).strip()
-    }
-
-    answers: List[Dict[str, Any]] = []
-    for raw_word in nyt_puzzle.get("answers", []):
-        word = str(raw_word).strip().lower()
-        if not word:
-            continue
-        answers.append(
-            {
-                "word": word,
-                "is_pangram": 1 if word in pangram_words else 0,
-                "length": len(word),
-            }
+def fetch_official_puzzle_date() -> Optional[Dict[str, str]]:
+    try:
+        response = requests.get(
+            OFFICIAL_GAME_URL,
+            timeout=30,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                )
+            },
         )
+        response.raise_for_status()
 
-    return {
-        "puzzle": {
-            "puzzle_id": nyt_puzzle.get("id"),
-            "date": nyt_puzzle["displayDate"],
-            "print_date": nyt_puzzle.get("printDate"),
-            "letters": center_letter,
-            "all_letters": "".join(ordered_letters),
-            "word_count": len(answers),
-            "pangrams_count": len(pangram_words),
-            "editor": nyt_puzzle.get("editor"),
-        },
-        "words": answers,
-    }
+        start_marker = "window.gameData = "
+        start_index = response.text.find(start_marker)
+        if start_index == -1:
+            return None
+
+        json_start = start_index + len(start_marker)
+        script_end = response.text.find("</script>", json_start)
+        if script_end == -1:
+            return None
+
+        raw_json = response.text[json_start:script_end].strip()
+        if raw_json.endswith(";"):
+            raw_json = raw_json[:-1].rstrip()
+
+        game_data = json.loads(raw_json)
+        today_puzzle = game_data.get("today")
+        if not today_puzzle:
+            return None
+
+        display_date = today_puzzle.get("displayDate")
+        print_date = today_puzzle.get("printDate")
+        if not display_date or not print_date:
+            return None
+
+        return {
+            "date": display_date,
+            "print_date": print_date,
+        }
+    except Exception as exc:
+        print(f"Error fetching official puzzle date: {exc}")
+        return None
 
 
-def fetch_nyt_daily_words() -> Dict[str, Any]:
-    """Fetch the official NYT Spelling Bee puzzle from the game page."""
-    response = requests.get(
-        NYT_GAME_URL,
-        timeout=30,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            )
-        },
-    )
-    response.raise_for_status()
+def apply_official_puzzle_date(data: Dict[str, Any]) -> Dict[str, Any]:
+    puzzle = data.get("puzzle", {})
+    original_date = puzzle.get("date")
+    if original_date:
+        puzzle["source_date"] = original_date
 
-    start_marker = "window.gameData = "
-    start_index = response.text.find(start_marker)
-    if start_index == -1:
-        raise ValueError("Could not find NYT game data on the page.")
+    official_date = fetch_official_puzzle_date()
+    if not official_date:
+        return data
 
-    json_start = start_index + len(start_marker)
-    script_end = response.text.find("</script>", json_start)
-    if script_end == -1:
-        raise ValueError("Could not find the end of the NYT game data script tag.")
-
-    raw_json = response.text[json_start:script_end].strip()
-    if raw_json.endswith(";"):
-        raw_json = raw_json[:-1].rstrip()
-
-    game_data = json.loads(raw_json)
-    today_puzzle = game_data.get("today")
-    if not today_puzzle:
-        raise ValueError("NYT game data does not contain today's puzzle.")
-
-    normalized = normalize_nyt_puzzle(today_puzzle)
-    print(f"Loaded puzzle data from {NYT_GAME_URL}")
-    return normalized
+    puzzle["date"] = official_date["date"]
+    puzzle["print_date"] = official_date["print_date"]
+    return data
 
 
 def fetch_daily_words() -> Dict[str, Any]:
-    """Fetch daily answers, preferring the official NYT puzzle data."""
-    try:
-        return fetch_nyt_daily_words()
-    except Exception as exc:
-        print(f"Error fetching official NYT puzzle data: {exc}")
-
-    freshest_payload: Dict[str, Any] = {}
-    freshest_source = ""
-    freshest_date: Optional[datetime.date] = None
-
+    """Fetch daily answers from the API."""
     for api_url in API_URLS:
         try:
             response = requests.get(api_url, timeout=30)
             response.raise_for_status()
             payload = response.json()
             if payload.get("puzzle") and payload.get("words"):
-                puzzle_date = get_puzzle_date(payload)
-                if freshest_date is None or (puzzle_date and puzzle_date > freshest_date):
-                    freshest_payload = payload
-                    freshest_source = api_url
-                    freshest_date = puzzle_date
+                print(f"Loaded puzzle data from {api_url}")
+                return apply_official_puzzle_date(payload)
         except Exception as exc:
             print(f"Error fetching API from {api_url}: {exc}")
-
-    if freshest_payload:
-        print(f"Loaded fallback puzzle data from {freshest_source}")
-        return freshest_payload
-
     return {}
 
 
@@ -183,35 +141,11 @@ def is_pangram_word(word: str, api_flag: Any = None) -> bool:
     return api_flag == 1 or len(set(word)) == 7
 
 
-def parse_display_date(display_date: str) -> Optional[datetime.date]:
+def parse_display_date(display_date: str) -> datetime.datetime:
     try:
-        return datetime.datetime.strptime(display_date, "%B %d, %Y").date()
-    except (TypeError, ValueError):
-        return None
-
-
-def get_puzzle_date(data: Dict[str, Any]) -> Optional[datetime.date]:
-    puzzle = data.get("puzzle", {})
-    print_date = puzzle.get("print_date")
-    if isinstance(print_date, str):
-        try:
-            return datetime.date.fromisoformat(print_date)
-        except ValueError:
-            pass
-
-    return parse_display_date(puzzle.get("date"))
-
-
-def get_current_reference_date() -> datetime.date:
-    if NYT_TIMEZONE is not None:
-        return datetime.datetime.now(NYT_TIMEZONE).date()
-    return datetime.datetime.utcnow().date()
-
-
-def get_reference_date_label() -> str:
-    if NYT_TIMEZONE is not None:
-        return "current NYT puzzle date"
-    return "current UTC date"
+        return datetime.datetime.strptime(display_date, "%B %d, %Y")
+    except ValueError:
+        return datetime.datetime.utcnow()
 
 
 def warn_if_puzzle_is_stale(data: Dict[str, Any]) -> None:
@@ -219,16 +153,12 @@ def warn_if_puzzle_is_stale(data: Dict[str, Any]) -> None:
     if not display_date:
         return
 
-    parsed_date = get_puzzle_date(data)
-    if not parsed_date:
-        print(f"Warning: could not parse puzzle date '{display_date}'.")
-        return
-
-    current_date = get_current_reference_date()
+    parsed_date = parse_display_date(display_date).date()
+    current_date = datetime.date.today()
     if parsed_date < current_date:
         print(
             "Warning: puzzle source returned "
-            f"{display_date}, which is older than the {get_reference_date_label()} {current_date:%B %d, %Y}."
+            f"{display_date}, which is older than the current local date {current_date:%B %d, %Y}."
         )
 
 
@@ -252,7 +182,7 @@ def build_word_entries(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def get_daily_rng(data: Dict[str, Any]) -> random.Random:
     puzzle = data.get("puzzle", {})
-    seed = f"{puzzle.get('print_date') or puzzle.get('date', '')}|{puzzle.get('letters', '')}|{len(data.get('words', []))}"
+    seed = f"{puzzle.get('source_date') or puzzle.get('date', '')}|{puzzle.get('letters', '')}|{len(data.get('words', []))}"
     return random.Random(seed)
 
 
@@ -590,10 +520,12 @@ def build_chapters(video_details: Dict[str, Any]) -> List[str]:
 
 def build_upload_metadata(data: Dict[str, Any], video_details: Dict[str, Any]) -> Dict[str, Any]:
     display_date = data["puzzle"]["date"]
-    parsed_date = get_puzzle_date(data)
-    if not parsed_date:
-        raise ValueError(f"Could not determine a valid puzzle date from '{display_date}'.")
-    recording_date = f"{parsed_date.isoformat()}T00:00:00Z"
+    print_date = data.get("puzzle", {}).get("print_date")
+    if isinstance(print_date, str) and print_date:
+        recording_date = f"{print_date}T00:00:00Z"
+    else:
+        parsed_date = parse_display_date(display_date)
+        recording_date = parsed_date.strftime("%Y-%m-%dT00:00:00Z")
     chapters = build_chapters(video_details)
 
     title = f"Spelling Bee Answer Today | NYT Spelling Bee Answers - {display_date}"
